@@ -49,7 +49,24 @@ open class SHViewController: UIViewController {
     @IBOutlet var collectionView: UICollectionView?
     fileprivate var image: UIImage?
     fileprivate var smallImage: UIImage?
-
+    
+    fileprivate var colorControls: [ControlValue] = [
+        ControlValue(control: .saturation, min: 0,  max: 2, value: 1),
+        ControlValue(control: .brightness, min: -1, max: 1, value: 0),
+        ControlValue(control: .contrast,   min: 0,  max: 2, value: 1)
+    ]
+    
+    lazy fileprivate var controlsCollectionView: ControlsCollectionView = {
+        let flowLayout = UICollectionViewFlowLayout()
+        flowLayout.itemSize = CGSize(width: UIScreen.main.bounds.size.width, height: 50)
+        flowLayout.minimumLineSpacing = 0
+        
+        let collectionView = ControlsCollectionView(frame: .zero, collectionViewLayout: flowLayout)
+        collectionView.allowsSelection = false
+        collectionView.controls = self.colorControls
+        return collectionView
+    }()
+    
     public init(image: UIImage) {
         super.init(nibName: nil, bundle: nil)
         self.image = image
@@ -73,8 +90,20 @@ open class SHViewController: UIViewController {
         super.viewDidLoad()
         let nib = UINib(nibName: "SHCollectionViewCell", bundle: Bundle(for: self.classForCoder))
         collectionView?.register(nib, forCellWithReuseIdentifier: "cell")
-    }
 
+        view.addSubview(controlsCollectionView)
+        controlsCollectionView.translatesAutoresizingMaskIntoConstraints = false
+        controlsCollectionView.backgroundColor = .clear
+        controlsCollectionView.leftAnchor.constraint(equalTo: view.leftAnchor).isActive = true
+        controlsCollectionView.rightAnchor.constraint(equalTo: view.rightAnchor).isActive = true
+        controlsCollectionView.bottomAnchor.constraint(equalTo: imageView!.bottomAnchor).isActive = true
+        controlsCollectionView.heightAnchor.constraint(equalToConstant: 150).isActive = true
+        
+        controlsCollectionView.onValueChange = { [weak self] _ in
+            self?.applyFilter()
+        }
+    }
+    
     @IBAction func imageViewDidSwipeLeft() {
         if filterIndex == filterNameList.count - 1 {
             filterIndex = 0
@@ -117,17 +146,34 @@ open class SHViewController: UIViewController {
         let sourceImage = CIImage(image: image)
 
         // 2 - create filter using name
-        let filter = CIFilter(name: filterName)
-        filter?.setDefaults()
+        guard let filter = CIFilter(name: filterName) else {
+            return UIImage()
+        }
+        
+        filter.setDefaults()
 
         // 3 - set source image
-        filter?.setValue(sourceImage, forKey: kCIInputImageKey)
-
+        filter.setValue(sourceImage, forKey: kCIInputImageKey)
+        
         // 4 - output filtered image as cgImage with dimension.
-        let outputCGImage = context.createCGImage((filter?.outputImage!)!, from: (filter?.outputImage!.extent)!)
-
+        guard var outputImage = filter.outputImage else {
+            return UIImage()
+        }
+        
+        // 4.1 - set color inputs
+        if colorControls.count > 0 {
+            let parameters = colorControls.reduce(into: [String : Any](), { result, controlValue in
+                result[controlValue.control.filterName] = controlValue.value
+            })
+            outputImage = outputImage.applyingFilter("CIColorControls", parameters: parameters)
+        }
+        
+        guard let outputCGImage = context.createCGImage(outputImage, from: outputImage.extent) else {
+            return UIImage()
+        }
+        
         // 5 - convert filtered CGImage to UIImage
-        let filteredImage = UIImage(cgImage: outputCGImage!)
+        let filteredImage = UIImage(cgImage: outputCGImage)
 
         return filteredImage
     }
