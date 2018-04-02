@@ -2,6 +2,7 @@ Pod::Spec.new do |s|
   s.name             = 'Sharaku'
   s.version          = '1.0.2'
   s.summary          = 'Sharaku is an image filtering UI library like Instagram.'
+  s.swift_version    = '4.0'
   s.description      = <<-DESC
     Sharaku is an image filtering library like Instagram which is using CIFilter. This library is strongly inspired by Fusuma.
         DESC
