@@ -12,6 +12,7 @@ enum CIColorControl: String {
     case contrast
     case brightness
     case saturation
+    case alpha
     
     var filterName: String {
         switch self {
@@ -21,6 +22,8 @@ enum CIColorControl: String {
             return "inputBrightness"
         case .saturation:
             return "inputSaturation"
+        case .alpha:
+            return "inputAVector"
         }
     }
 }
@@ -92,7 +95,7 @@ class ControlCollectionCell: UICollectionViewCell
     private func update() {
         guard let controlValue = controlValue else {
             label.text = nil
-            slider.isEnabled = false
+            slider.isEnabled = true
             return
         }
         
