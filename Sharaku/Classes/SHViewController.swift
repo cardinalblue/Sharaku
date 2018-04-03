@@ -51,6 +51,7 @@ open class SHViewController: UIViewController {
     fileprivate var smallImage: UIImage?
     
     fileprivate var colorControls: [ControlValue] = [
+        ControlValue(control: .alpha,      min: 0,  max: 1, value: 1),
         ControlValue(control: .saturation, min: 0,  max: 2, value: 1),
         ControlValue(control: .brightness, min: -1, max: 1, value: 0),
         ControlValue(control: .contrast,   min: 0,  max: 2, value: 1)
@@ -163,9 +164,29 @@ open class SHViewController: UIViewController {
         // 4.1 - set color inputs
         if colorControls.count > 0 {
             let parameters = colorControls.reduce(into: [String : Any](), { result, controlValue in
-                result[controlValue.control.filterName] = controlValue.value
+                if controlValue.control != .alpha {
+                    result[controlValue.control.filterName] = controlValue.value
+                }
             })
             outputImage = outputImage.applyingFilter("CIColorControls", parameters: parameters)
+        }
+        
+        if let alphaControl = colorControls.first(where: { $0.control == .alpha }) {
+            print("tweak alpha \(alphaControl.value)")
+            let alpha = CGFloat(alphaControl.value)
+            let rgba: [CGFloat] = [0, 0, 0, alpha]
+            let vector = CIVector(values: rgba, count: 4)
+            let colorMatrix = CIFilter(name: "CIColorMatrix")!
+            colorMatrix.setDefaults()
+            colorMatrix.setValue(outputImage, forKey: kCIInputImageKey)
+            colorMatrix.setValue(vector, forKey: "inputAVector")
+            
+            let composite = CIFilter(name: "CISourceOverCompositing")!
+            composite.setDefaults()
+            composite.setValue(colorMatrix.outputImage!, forKey: kCIInputImageKey)
+            composite.setValue(sourceImage, forKey: kCIInputBackgroundImageKey)
+            
+            outputImage = composite.outputImage!
         }
         
         guard let outputCGImage = context.createCGImage(outputImage, from: outputImage.extent) else {
