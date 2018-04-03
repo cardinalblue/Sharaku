@@ -8,13 +8,13 @@
 
 import UIKit
 
-public protocol SHViewControllerDelegate {
+@objc public protocol SHViewControllerDelegate {
     func shViewControllerImageDidFilter(image: UIImage)
     func shViewControllerDidCancel()
 }
 
-open class SHViewController: UIViewController {
-    public var delegate: SHViewControllerDelegate?
+@objc open class SHViewController: UIViewController {
+    @objc public var delegate: SHViewControllerDelegate?
     fileprivate let filterNameList = [
         "No Filter",
         "CIPhotoEffectChrome",
@@ -68,7 +68,7 @@ open class SHViewController: UIViewController {
         return collectionView
     }()
     
-    public init(image: UIImage) {
+    @objc public init(image: UIImage) {
         super.init(nibName: nil, bundle: nil)
         self.image = image
     }
